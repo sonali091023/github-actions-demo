@@ -49,3 +49,17 @@ restart: ## Rebuild + reload images, roll backend + frontend
 	kubectl rollout restart deployment/backend deployment/frontend -n $(NAMESPACE)
 	kubectl rollout status  deployment/backend  -n $(NAMESPACE) --timeout=120s
 	kubectl rollout status  deployment/frontend -n $(NAMESPACE) --timeout=60s
+
+down:
+	kind delete cluster --name $(CLUSTER)
+
+deploy-dev:
+	cd terraform/envs/dev && \
+	terraform fmt && \
+	terraform validate && \
+	terraform init -upgrade && \
+	terraform apply -auto-approve
+
+destroy-dev:
+	cd terraform/envs/dev && \
+	terraform destroy -auto-approve

@@ -8,11 +8,12 @@ on:
 
 jobs:
   bump-manifests:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    steps:
+
+    steps: 
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -26,8 +27,13 @@ jobs:
             echo "ERROR: DOCKERHUB_USERNAME secret is not set."
             exit 1
           fi
-          sed -i "s|image: ${DOCKER_USER}/skillpulse-backend:.*|image: ${DOCKER_USER}/skillpulse-backend:${SHA}|"  k8s/20-backend.yaml
-          sed -i "s|image: ${DOCKER_USER}/skillpulse-frontend:.*|image: ${DOCKER_USER}/skillpulse-frontend:${SHA}|" k8s/30-frontend.yaml
+
+          sed -i "s|image: .*/skillpulse-backend:.*|image: ${DOCKER_USER}/skillpulse-backend:${SHA}|"  k8s/20-backend.yaml
+          sed -i "s|image: .*/skillpulse-frontend:.*|image: ${DOCKER_USER}/skillpulse-frontend:${SHA}|" k8s/30-frontend.yaml
+
+          echo "==== Updated manifests ===="
+          cat k8s/20-backend.yaml
+          cat k8s/30-frontend.yaml
 
       - name: Commit + push if changed
         env:
@@ -35,10 +41,29 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if git diff --quiet; then
             echo "Manifests already pinned to ${SHA}; nothing to commit."
             exit 0
           fi
+
           git add k8s/20-backend.yaml k8s/30-frontend.yaml
           git commit -m "deploy: pin backend+frontend to ${SHA:0:7}"
           git push
+
+      - name: Deploy to EC2 (k3s)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/github-actions-demo
+            git pull origin main
+
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+            kubectl apply -f k8s/ -n skillpulse
+
+            kubectl rollout status deployment/backend -n skillpulse --timeout=120s
+            kubectl rollout status deployment/frontend -n skillpulse --timeout=120s

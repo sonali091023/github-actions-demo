@@ -14,7 +14,7 @@ spec:
     - name: http
       port: 80
       targetPort: 80
-      nodePort: 30080
+      nodePort: 30081
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -33,7 +33,9 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: trainwithshubham/skillpulse-frontend:latest
+
+          image: sonali0910/skillpulse-frontend:e443f9a5ef0439e3cad3a2a4918f4ef82fb96563
+
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -43,6 +45,7 @@ spec:
               cpu: 50m
               memory: 32Mi
             limits:
+              cpu: 200m
               memory: 64Mi
           livenessProbe:
             httpGet:
