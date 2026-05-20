@@ -55,7 +55,17 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+      
           script: |
+            if [ ! -d "/home/ubuntu/github-actions-demo" ]; then
+              cd /home/ubuntu
+              git clone https://github.com/sonali091023/github-actions-demo.git
+            fi
+
             cd /home/ubuntu/github-actions-demo
+
             git pull origin main
+
+            chmod +x .github/scripts/deploy.sh
+
             bash .github/scripts/deploy.sh
