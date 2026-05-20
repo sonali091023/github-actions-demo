@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: sonali0910/skillpulse-backend:f85447d05aa80a42673f3d9ac3e0cf0f89b83780
+          image: sonali0910/skillpulse-backend:1d330d63613e83ac13793d9edd283080596ea3dc
 
           imagePullPolicy: IfNotPresent
           ports:
