@@ -44,12 +44,11 @@ jobs:
 
           if git diff --quiet; then
             echo "Manifests already pinned to ${SHA}; nothing to commit."
-            exit 0
+          else
+            git add k8s/20-backend.yaml k8s/30-frontend.yaml
+            git commit -m "deploy: pin backend+frontend to ${SHA:0:7}"
+            git push
           fi
-
-          git add k8s/20-backend.yaml k8s/30-frontend.yaml
-          git commit -m "deploy: pin backend+frontend to ${SHA:0:7}"
-          git push
 
       - name: Deploy to EC2 (KIND)
         uses: appleboy/ssh-action@v1.0.3
@@ -60,7 +59,4 @@ jobs:
           script: |
             cd /home/ubuntu/github-actions-demo
             git pull origin main
-
-            kubectl apply -f k8s/ -n skillpulse
-            kubectl rollout status deployment/backend -n skillpulse --timeout=120s
-            kubectl rollout status deployment/frontend -n skillpulse --timeout=120s
+            bash .github/scripts/deploy.sh
