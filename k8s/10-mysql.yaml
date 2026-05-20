@@ -137,7 +137,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: local-path
+        #storageClassName: standard         This line of code is imp, if we dont mention k8s will automatically use standard which is default one
         resources:
           requests:
             storage: 1Gi

@@ -51,7 +51,7 @@ jobs:
           git commit -m "deploy: pin backend+frontend to ${SHA:0:7}"
           git push
 
-      - name: Deploy to EC2 (k3s)
+      - name: Deploy to EC2 (KIND)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -61,9 +61,6 @@ jobs:
             cd /home/ubuntu/github-actions-demo
             git pull origin main
 
-            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
             kubectl apply -f k8s/ -n skillpulse
-
             kubectl rollout status deployment/backend -n skillpulse --timeout=120s
             kubectl rollout status deployment/frontend -n skillpulse --timeout=120s

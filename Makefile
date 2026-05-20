@@ -3,11 +3,27 @@ NAMESPACE ?= skillpulse
 BACKEND_IMAGE  ?= trainwithshubham/skillpulse-backend:latest
 FRONTEND_IMAGE ?= trainwithshubham/skillpulse-frontend:latest
 
-.PHONY: up down build load apply status logs mysql restart
+.PHONY: up down build load apply status logs mysql restart deploy-dev destroy-dev
 
 up: ## One-shot: build images, create cluster, load images, apply manifests
+	#Before deployment starts, Makefile checks k8s/kind-config.yaml exists, backend/ exists, frontend/ exists, k8s/ exists etc.
+	@echo "==== VERIFYING PROJECT STRUCTURE ===="   
+	@test -f k8s/kind-config.yaml || (echo "Missing k8s/kind-config.yaml" && exit 1)
+
+	@test -d backend || (echo "Missing backend directory" && exit 1)
+
+	@test -d frontend || (echo "Missing frontend directory" && exit 1)
+
+	@test -d k8s || (echo "Missing k8s directory" && exit 1)
+	
 	$(MAKE) build
-	kind create cluster --config k8s/kind-config.yaml --name $(CLUSTER)
+	
+	@if ! kind get clusters | grep -wq $(CLUSTER); then \
+		kind create cluster --config k8s/kind-config.yaml --name $(CLUSTER); \
+	else \
+		echo "Cluster $(CLUSTER) already exists"; \
+	fi
+
 	$(MAKE) load
 	$(MAKE) apply
 	@echo
@@ -50,16 +66,15 @@ restart: ## Rebuild + reload images, roll backend + frontend
 	kubectl rollout status  deployment/backend  -n $(NAMESPACE) --timeout=120s
 	kubectl rollout status  deployment/frontend -n $(NAMESPACE) --timeout=60s
 
-down:
-	kind delete cluster --name $(CLUSTER)
-
 deploy-dev:
 	cd terraform/envs/dev && \
-	terraform fmt && \
-	terraform validate && \
+	terraform fmt -recursive && \
 	terraform init -upgrade && \
+	terraform validate && \
 	terraform apply -auto-approve
 
 destroy-dev:
 	cd terraform/envs/dev && \
+	terraform init -upgrade && \
 	terraform destroy -auto-approve
+

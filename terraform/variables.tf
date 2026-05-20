@@ -12,7 +12,7 @@ variable "aws_region" {
 
 variable "repo_url" {
   description = "Repository URL"
-  default = "https://github.com/sonali091023/github-actions-repo.git"
+  default = "https://github.com/sonali091023/github-actions-demo.git"
   type        = string
 }
 

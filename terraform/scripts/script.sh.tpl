@@ -12,13 +12,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
 
-apt-get install -y \
-  ca-certificates \
-  curl \
-  gnupg \
-  lsb-release \
-  git \
-  apt-transport-https
+apt-get install -y ca-certificates curl gnupg lsb-release git make apt-transport-https 
 
 # --------------------------------
 # Install Docker
@@ -68,52 +62,54 @@ https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
 
 chmod +x /usr/local/bin/kind
 
-# --------------------------------
+# --------------------------------   So using Makefile approach to install/configure KIND so commenting this
 # Create KIND Cluster
 # --------------------------------
-if ! sudo -u ubuntu kind get clusters | grep -q skillpulse; then
-  sudo -u ubuntu kind create cluster --name skillpulse
-fi
+#if ! sudo -u ubuntu kind get clusters | grep -q skillpulse; then
+#  sudo -u ubuntu kind create cluster --name skillpulse
+#fi
 
-# --------------------------------
+# --------------------------------   So using Makefile approach to install/configure kubectl so commenting this
 # Configure kubectl
 # --------------------------------
-mkdir -p /home/ubuntu/.kube
-
-cp /root/.kube/config /home/ubuntu/.kube/config
-
-chown -R ubuntu:ubuntu /home/ubuntu/.kube
-
-export KUBECONFIG=/home/ubuntu/.kube/config
-
+#mkdir -p /home/ubuntu/.kube
+#sudo -u ubuntu kind get kubeconfig --name skillpulse > /home/ubuntu/.kube/config
+#chown -R ubuntu:ubuntu /home/ubuntu/.kube
+#export KUBECONFIG=/home/ubuntu/.kube/config
 # Wait for cluster readiness
-until sudo -u ubuntu kubectl get nodes; do
-  sleep 5
-done
+#until sudo -u ubuntu kubectl get nodes | grep -q " Ready"; do
+#  sleep 5
+#done
 
-# --------------------------------
+# --------------------------------   #So using Makefile approach to create namespace so commenting this
 # Create Namespace
 # --------------------------------
-sudo -u ubuntu kubectl create namespace skillpulse \
---dry-run=client -o yaml | \
-sudo -u ubuntu kubectl apply -f -
+#sudo -u ubuntu kubectl create namespace skillpulse || true
+
+# --------------------------------   #Commenting this to, As using Makefile approach
+# Clone GitHub Repository
+# --------------------------------
+# Wait for cluster readiness
+#until sudo -u ubuntu kubectl wait --for=condition=Ready nodes --all --timeout=120s; do
+#  sleep 5
+#done
 
 # --------------------------------
 # Clone GitHub Repository
 # --------------------------------
+repo_url="https://github.com/sonali091023/github-actions-repo.git"
+
 if [ ! -d "/home/ubuntu/github-actions-demo" ]; then
-  sudo -u ubuntu git clone ${repo_url} /home/ubuntu/github-actions-demo
+  sudo -u ubuntu git clone "$repo_url" /home/ubuntu/github-actions-demo
 fi
 
 chown -R ubuntu:ubuntu /home/ubuntu/github-actions-demo
 
 # --------------------------------
-# Deploy Kubernetes Resources
+# Run Makefile Deployment
 # --------------------------------
-sudo -u ubuntu kubectl apply -f \
-/home/ubuntu/github-actions-demo/k8s/
 
-# --------------------------------
-# Verify Deployment
-# --------------------------------
-sudo -u ubuntu kubectl get pods -A
+cd /home/ubuntu/github-actions-demo
+
+#sudo -u ubuntu make apply
+sudo -u ubuntu make up     #Even better Automation, To handle cluster creation by makefile use this, because make up already does: build, kind create cluster, load images, apply manifests etc.
