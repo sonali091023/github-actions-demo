@@ -6,82 +6,100 @@ metadata:
   namespace: skillpulse
   labels:
     app: backend
+
 spec:
   type: NodePort
+
   selector:
     app: backend
+
   ports:
     - name: http
       port: 8080
       targetPort: 8080
       nodePort: 30080
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
   namespace: skillpulse
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: backend
+
   template:
     metadata:
       labels:
         app: backend
+
     spec:
       containers:
         - name: backend
           image: sonali0910/skillpulse-backend:1d330d63613e83ac13793d9edd283080596ea3dc
 
           imagePullPolicy: IfNotPresent
+
           ports:
             - name: http
               containerPort: 8080
+
           env:
             - name: DB_HOST
               value: mysql
+
             - name: DB_PORT
               value: "3306"
+
             - name: PORT
-              value: "8080"  
+              value: "8080"
+
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
                   name: skillpulse-db
                   key: MYSQL_USER
+
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: skillpulse-db
                   key: MYSQL_PASSWORD
+
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
                   name: skillpulse-db
                   key: MYSQL_DATABASE
+
           resources:
             requests:
               cpu: 100m
               memory: 64Mi
+
             limits:
               cpu: 500m
               memory: 128Mi
+
           livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+            httpGet:
+              path: /health
+              port: 8080
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 10
 
-            readinessProbe:
+          readinessProbe:
             httpGet:
               path: /health
               port: 8080
-              initialDelaySeconds: 30
-              periodSeconds: 5
-              timeoutSeconds: 5
-              failureThreshold: 10
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 10
