@@ -8,7 +8,88 @@ locals {
   }
 }
 
-# Latest Amazon Linux AMI, Get latest Ubuntu AMI dynamically (recommended instead of hardcoding)
+# ---------------- VPC ----------------
+resource "aws_vpc" "vpc" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-vpc"
+  })
+}
+
+# ---------------- Public Subnet ----------------
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = var.public_subnet_cidr
+  map_public_ip_on_launch = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-subnet"
+  })
+}
+
+# ---------------- Internet Gateway ----------------
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-igw"
+  })
+}
+
+# ---------------- Route Table ----------------
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-rt"
+  })
+}
+
+# ---------------- Route Table Association ----------------
+resource "aws_route_table_association" "public_rt_association" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+#------------------Security Group with Dynamic Ports------------------
+resource "aws_security_group" "ec2_sg" {
+  name        = "${local.name_prefix}-sg"
+  description = "Security group for EC2 allowing dynamic ports"
+  vpc_id      = var.vpc_id
+
+  dynamic "ingress" {
+    for_each = var.allowed_ports
+
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ingress.value == 22 ? [var.ssh_cidr] : ["0.0.0.0/0"]
+    }
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-sg"
+  })
+}
+
+# Get latest Ubuntu AMI dynamically (recommended instead of hardcoding)
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical (Ubuntu)
@@ -19,154 +100,21 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "${local.name_prefix}-vpc"
-  }
-}
-
-# Internet Gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-}
-
-# Public Subnet
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "${local.name_prefix}-subnet"
-  }
-}
-
-# Private Subnet
-resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.private_subnet_cidr
-
-  tags = {
-    Name = "${local.name_prefix}-subnet"
-  }
-}
-
-# Elastic IP
-resource "aws_eip" "nat" {
-  domain = "vpc"
-}
-
-# NAT Gateway
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
-
-  depends_on = [aws_internet_gateway.igw]
-}
-
-# Public Route Table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-}
-
-# Private Route Table
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-}
-
-# Route Associations
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "private_assoc" {
-  subnet_id      = aws_subnet.private.id
-  route_table_id = aws_route_table.private.id
-}
-
-# Bastion Security Group
-resource "aws_security_group" "bastion_sg" {
-  name   = "bastion-sg"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    description = "SSH Access"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# Private EC2 Security Group
-resource "aws_security_group" "private_ec2_sg" {
-  name   = "private-ec2-sg"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion_sg.id]
-  }
-
-  ingress {
-  description = "Kubernetes NodePort Access"     #Kubernetes NodePort services expose applications on ports like & AWS blocks them unless Security Group allows those ports.
-  from_port   = 30000
-  to_port     = 32767
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
-}
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# Bastion Host
-resource "aws_instance" "bastion" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.public.id
-  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
+# ---------------- EC2 Instance ----------------
+resource "aws_instance" "skill_pulse_server" {
+  ami = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type_map[var.env]
+  key_name      = var.key_pair_map[var.env]
+  subnet_id = var.subnet_id
   associate_public_ip_address = true
-  key_name                    = var.key_name
+  vpc_security_group_ids = var.security_group_ids
 
   user_data = templatefile("${path.module}/scripts/script.sh.tpl", {
-    repo_url = var.repo_url
-})
+      repo_url = var.project_repo                                          #This makes everything install automatically when EC2 launches.
+})     
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-server"
   })
 }
-
-
-
 

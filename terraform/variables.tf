@@ -1,60 +1,59 @@
-variable "my_ip" {}
-
-variable "bucket_name" {}
-
-#===================================================================
-
-#variables.tf → defines structure
-variable "aws_region" {
-  description = "AWS region"
+variable "project_name" {
+  description = "Name of the project"
   type        = string
 }
 
-variable "repo_url" {
-  description = "Repository URL"
-  default = "https://github.com/sonali091023/github-actions-demo.git"
+variable "project_repo" {
   type        = string
+  default     = "https://github.com/sonali091023/github-actions-demo.git"
 }
-
-variable "dockerhub_username" {
-  description = "dockerhub username"
-  default = "sonali0910"
-    type        = string
-}
-
 variable "vpc_cidr" {
-  type = string
-  default = "10.0.0.0/16" 
+  description = "CIDR block for VPC"
+  type        = string
+  default     = "10.0.0.0/16"
 }
 
 variable "public_subnet_cidr" {
-  type = string
-  default = "10.0.1.0/24" 
+  description = "CIDR block for public subnet"
+  type        = string
+  default     = "10.0.1.0/24"
 }
 
-variable "private_subnet_cidr" {
-  default = "10.0.2.0/24"
+variable "vpc_id" {
+  description = "VPC ID where security group will be created"
+  type        = string
+}
+
+variable "ssh_cidr" {
+  description = "Allowed CIDR for SSH access"
+  type        = string
+  #default     = "0.0.0.0/0"  # tighten in production
 }
 
 variable "instance_type" {
-  type = string
-  default = "t3.micro"
-}
-
-variable "project_name" {
-  description = "Name of the project"
-  type = string  
+  description = "EC2 instance type"
+  type        = string
 }
 
 variable "key_name" {
-  type = string
-  default = "skill-pulse-key"
-  
+  description = "EC2 Key Pair name"
+  type        = string
+}
+
+variable "subnet_id" {
+  description = "Subnet ID where EC2 will be launched"
+  type        = string
+}
+
+variable "security_group_ids" {
+  description = "List of security group IDs"
+  type        = list(string)
+  default     = []
 }
 
 #=================In case of dynamic value===========
 variable "env" {
-  description = "Environment (dev, stage, prod)"
+  description = "Environment (dev, stage, prod, qa)"
   type        = string
 }
 
@@ -67,6 +66,7 @@ variable "instance_type_map" {
     dev   = "t3.micro"
     stage = "t3.small"
     prod  = "c7i-flex.large"
+    qa = "t3.medium"
   }
 }
 
