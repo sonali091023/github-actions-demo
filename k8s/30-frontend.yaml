@@ -34,7 +34,7 @@ spec:
       containers:
         - name: frontend
 
-          image: sonali0910/skillpulse-frontend:5515006f53784decf7c27f766d9bc9521811451c
+          image: sonali0910/skillpulse-frontend:1ace7794001360bef7645e534cd3c5117c2de29e
 
           imagePullPolicy: IfNotPresent
           ports:
