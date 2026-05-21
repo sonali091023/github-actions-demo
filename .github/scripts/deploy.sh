@@ -132,10 +132,9 @@ kubectl get nodes -o wide
 
 echo ""
 echo "==== Building Backend Image ===="
+#Note: Important bash rule: If a command spans multiple lines, every line except the last must end with "\", Otherwise bash treats the next line as a new command.
 
-docker build 
--t "$BACKEND_IMAGE" 
-./backend
+docker build -t "$BACKEND_IMAGE" ./backend
 
 # ─────────────────────────────────────────────
 
@@ -146,9 +145,7 @@ docker build
 echo ""
 echo "==== Building Frontend Image ===="
 
-docker build 
--t "$FRONTEND_IMAGE" 
-./frontend
+docker build -t "$FRONTEND_IMAGE" ./frontend
 
 # ─────────────────────────────────────────────
 
