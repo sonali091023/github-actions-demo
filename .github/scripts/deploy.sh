@@ -6,8 +6,8 @@ NAMESPACE="skillpulse"
 
 KIND_NODE_IMAGE="kindest/node:v1.30.0"
 
-BACKEND_IMAGE="trainwithshubham/skillpulse-backend:latest"
-FRONTEND_IMAGE="trainwithshubham/skillpulse-frontend:latest"
+BACKEND_IMAGE="sonali0910/skillpulse-backend:latest"
+FRONTEND_IMAGE="sonali0910/skillpulse-frontend:latest"
 
 APP_DIR="/home/ubuntu/github-actions-demo"
 
@@ -91,24 +91,16 @@ echo "==== Verifying cluster health ===="
 if ! kubectl cluster-info >/dev/null 2>&1; then
 echo "Cluster unhealthy. Recreating..."
 
-```
 kind delete cluster --name "$CLUSTER"
 
-kind create cluster \
-  --name "$CLUSTER" \
-  --image "$KIND_NODE_IMAGE" \
-  --config k8s/kind-config.yaml
-```
+kind create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --config k8s/kind-config.yaml
 
 fi
 
 else
 echo "Cluster not found. Creating..."
 
-kind create cluster 
---name "$CLUSTER" 
---image "$KIND_NODE_IMAGE" 
---config k8s/kind-config.yaml
+kind create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --config k8s/kind-config.yaml
 fi
 
 # ─────────────────────────────────────────────
@@ -182,11 +174,7 @@ kubectl apply -f k8s/30-frontend.yaml
 echo ""
 echo "==== Waiting for MySQL ===="
 
-if ! kubectl wait 
---for=condition=ready pod 
--l app=mysql 
--n "$NAMESPACE" 
---timeout=300s; then
+if ! kubectl wait --for=condition=ready pod -l app=mysql -n "$NAMESPACE" --timeout=300s; then
 
 echo ""
 echo "========================================="
@@ -223,9 +211,7 @@ fi
 echo ""
 echo "==== Waiting For Backend Deployment ===="
 
-kubectl rollout status deployment/backend 
--n "$NAMESPACE" 
---timeout=300s
+kubectl rollout status deployment/backend -n "$NAMESPACE" --timeout=300s
 
 # ─────────────────────────────────────────────
 
@@ -236,9 +222,7 @@ kubectl rollout status deployment/backend
 echo ""
 echo "==== Waiting For Frontend Deployment ===="
 
-kubectl rollout status deployment/frontend 
--n "$NAMESPACE" 
---timeout=300s
+kubectl rollout status deployment/frontend -n "$NAMESPACE" --timeout=300s
 
 # ─────────────────────────────────────────────
 
