@@ -49,7 +49,7 @@ echo "==== Loading images into KIND ===="
 kind load docker-image "$BACKEND_IMAGE" --name "$CLUSTER"
 kind load docker-image "$FRONTEND_IMAGE" --name "$CLUSTER"
 
-# ── Apply manifests in explicit order ─────────────────────────────────
+# ── Apply manifests ───────────────────────────────────────────────────
 echo "==== Applying manifests ===="
 
 kubectl apply -f k8s/00-namespace.yaml \
@@ -57,12 +57,24 @@ kubectl apply -f k8s/00-namespace.yaml \
               -f k8s/20-backend.yaml \
               -f k8s/30-frontend.yaml
 
-# ── Wait for MySQL before backend restart ─────────────────────────────
+# ── Wait for MySQL ────────────────────────────────────────────────────
 echo "==== Waiting for MySQL ===="
 
-kubectl rollout status statefulset/mysql \
-  -n "$NAMESPACE" \
-  --timeout=300s
+if ! kubectl wait --for=condition=ready pod -l app=mysql -n "$NAMESPACE" --timeout=300s; then
+  echo ""
+  echo "==== MYSQL POD DEBUG ===="
+
+  kubectl get pods -n "$NAMESPACE"
+
+  echo ""
+  kubectl describe pod -l app=mysql -n "$NAMESPACE"
+
+  echo ""
+  echo "==== MYSQL LOGS ===="
+  kubectl logs -l app=mysql -n "$NAMESPACE" --tail=100
+
+  exit 1
+fi
 
 # ── Restart deployments ───────────────────────────────────────────────
 echo "==== Restarting deployments ===="
@@ -70,12 +82,15 @@ echo "==== Restarting deployments ===="
 kubectl rollout restart deployment/backend -n "$NAMESPACE"
 kubectl rollout restart deployment/frontend -n "$NAMESPACE"
 
-# ── Wait for rollouts ─────────────────────────────────────────────────
-echo "==== Waiting for rollouts ===="
+# ── Wait for Backend ──────────────────────────────────────────────────
+echo "==== Waiting for Backend ===="
 
 kubectl rollout status deployment/backend \
   -n "$NAMESPACE" \
   --timeout=300s
+
+# ── Wait for Frontend ─────────────────────────────────────────────────
+echo "==== Waiting for Frontend ===="
 
 kubectl rollout status deployment/frontend \
   -n "$NAMESPACE" \
