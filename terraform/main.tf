@@ -114,6 +114,12 @@ resource "aws_instance" "SkillPuls_Server" {     #This launches EC2 instance ins
   subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
+
+  root_block_device {
+    volume_size = 25
+    volume_type = "gp3"
+    encrypted   = true
+  }
   #Square brackets are required because Terraform expects a list, even for a single security group.
 
   ##This is bootstrap script, So what happen here is Installs Nginx, Starts it & Enables it on boot & Your EC2 becomes a web server automatically
