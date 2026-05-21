@@ -32,10 +32,10 @@ variable "instance_type_map" {
   type        = map(string)
 
   default = {
-    dev   = "t3.micro"
-    stage = "t3.small"
-    qa    = "t3.medium"
-    prod  = "c7i-flex.large"
+    dev   = "m7i-flex.large"
+    stage = "m7i-flex.large"
+    qa    = "m7i-flex.large"
+    prod  = "m7i-flex.large"
   }
 }
 

@@ -3,12 +3,19 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: skillpulse
 nodes:
   - role: control-plane
-    image: kindest/node:v1.35.1
+    image: kindest/node:v1.30.0        #previous version: v1.35.1
     extraPortMappings:
       - containerPort: 30080
         hostPort: 8888
         protocol: TCP
   - role: worker
-    image: kindest/node:v1.35.1
+    image: kindest/node:v1.30.0        #previous version: v1.35.1
   - role: worker
-    image: kindest/node:v1.35.1
+    image: kindest/node:v1.30.0
+
+
+    #Stable version
+#kind: Cluster
+#apiVersion: kind.x-k8s.io/v1alpha4
+#nodes:
+  #- role: control-plane

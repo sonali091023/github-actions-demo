@@ -10,10 +10,11 @@ jobs:
   bump-manifests:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
-    steps: 
+    steps:
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -22,11 +23,13 @@ jobs:
         env:
           SHA: ${{ github.event.workflow_run.head_sha }}
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+
         run: |
           if [ -z "$DOCKER_USER" ]; then
             echo "ERROR: DOCKERHUB_USERNAME secret is not set."
             exit 1
           fi
+
           sed -i "s|image: .*/skillpulse-backend:.*|image: ${DOCKER_USER}/skillpulse-backend:${SHA}|"  k8s/20-backend.yaml
           sed -i "s|image: .*/skillpulse-frontend:.*|image: ${DOCKER_USER}/skillpulse-frontend:${SHA}|" k8s/30-frontend.yaml
 
@@ -37,6 +40,7 @@ jobs:
       - name: Commit + push if changed
         env:
           SHA: ${{ github.event.workflow_run.head_sha }}
+
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -51,12 +55,31 @@ jobs:
 
       - name: Deploy to EC2 (KIND)
         uses: appleboy/ssh-action@v1.0.3
+
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-      
+
           script: |
+            set -e
+
+            echo "==== Installing stable KIND version ===="
+
+            if ! command -v kind &> /dev/null; then
+              curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+              chmod +x ./kind
+              sudo mv ./kind /usr/local/bin/kind
+            fi
+
+            echo "==== Installing stable kubectl version ===="
+
+            if ! command -v kubectl &> /dev/null; then
+              curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              sudo mv kubectl /usr/local/bin/
+            fi
+
             if [ ! -d "/home/ubuntu/github-actions-demo" ]; then
               cd /home/ubuntu
               git clone https://github.com/sonali091023/github-actions-demo.git
