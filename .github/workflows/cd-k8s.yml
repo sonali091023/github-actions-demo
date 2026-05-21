@@ -87,7 +87,9 @@ jobs:
 
             cd /home/ubuntu/github-actions-demo
 
-            git pull origin main
+            git fetch origin
+            
+            git reset --hard origin/main
 
             chmod +x .github/scripts/deploy.sh
 
